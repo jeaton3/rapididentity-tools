@@ -1,0 +1,7 @@
+{
+  "host": "https://rapididentity.example.com",
+  "auth_type": "api_key",
+  "api_key": "your-api-key-here",
+  "timeout": 30,
+  "verify_ssl": true
+}
