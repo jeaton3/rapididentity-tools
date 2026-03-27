@@ -21,7 +21,7 @@ A Python library and utilities for interacting with RapidIdentity REST APIs.  Th
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/rapididentity-tools.git
+git clone https://github.com/jeaton3/rapididentity-tools.git
 cd rapididentity-tools
 
 # Install in development mode
