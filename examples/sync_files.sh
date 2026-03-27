@@ -58,44 +58,44 @@ log "Starting Connect file sync (dest: $DEST_DIR, config: $CONFIG)"
 
 # 1. Sync errorlog.csv every 5 minutes
 if should_run "$ERRORLOG_STATE" "$ERRORLOG_INTERVAL"; then
-    log "Syncing /logs/errorlog.csv ..."
+    log "Syncing $CONFIG /logs/errorlog.csv ..."
     if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync \
         /logs/errorlog.csv "$DEST_DIR"; then
         mark_run "$ERRORLOG_STATE"
-        log "✓ errorlog.csv sync complete"
+        log "✓ $CONFIG errorlog.csv sync complete"
     else
-        log "✗ errorlog.csv sync failed"
+        log "✗ $CONFIG errorlog.csv sync failed"
     fi
 else
-    log "~ Skipping errorlog.csv (not yet 5 min since last run)"
+    log "~ $CONFIG Skipping errorlog.csv (not yet 5 min since last run)"
 fi
 
 # 2. Sync everything with --recent-logs every hour
 if should_run "$RECENT_LOGS_STATE" "$RECENT_LOGS_INTERVAL"; then
-    log "Syncing / with --recent-logs ..."
+    log "Syncing $CONFIG / with --recent-logs ..."
     if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync \
         --recent-logs / "$DEST_DIR"; then
         mark_run "$RECENT_LOGS_STATE"
-        log "✓ recent-logs sync complete"
+        log "✓ $CONFIG recent-logs sync complete"
     else
-        log "✗ recent-logs sync failed"
+        log "✗ $CONFIG recent-logs sync failed"
     fi
 else
-    log "~ Skipping recent-logs sync (not yet 1 hour since last run)"
+    log "~ $CONFIG Skipping recent-logs sync (not yet 1 hour since last run)"
 fi
 
 # 3. Full sync everything daily
 if should_run "$FULL_SYNC_STATE" "$FULL_SYNC_INTERVAL"; then
-    log "Syncing / (full) ..."
+    log "$CONFIG Syncing / (full) ..."
     if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync \
         --exclude '2025|2026-0[12]' / "$DEST_DIR"; then
         mark_run "$FULL_SYNC_STATE"
-        log "✓ Full sync complete"
+        log "✓ $CONFIG Full sync complete"
     else
-        log "✗ Full sync failed"
+        log "✗ $CONFIG Full sync failed"
     fi
 else
-    log "~ Skipping full sync (not yet 1 day since last run)"
+    log "~ Skipping $CONFIG full sync (not yet 1 day since last run)"
 fi
 
 log "Sync cycle complete"
