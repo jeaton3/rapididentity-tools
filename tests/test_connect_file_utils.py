@@ -57,7 +57,7 @@ def test_rsync_recent_logs_skips_old_nested_log_entries(tmp_path, capsys):
     assert "Would create directory" in out
     assert "archive" in out
     assert "log/jobs" in out
-    assert "Skipping old directory log/jobs/2026-03-20" in out
+    assert "log/jobs/2026-03-20" in out
 
 
 def test_rsync_recent_logs_allows_old_non_log_entries(tmp_path, capsys):

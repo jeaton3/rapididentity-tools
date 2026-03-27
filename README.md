@@ -361,3 +361,4 @@ For issues, questions, or feature requests, please open an issue on GitHub or co
 - Utility modules for validation, parsing, and pagination
 - Comprehensive error handling
 - Full test coverage
+python examples/get_connect_endpoint.py --config test --endpoint /admin/connect/fileContent/log/run/apiruntest/2026-03-12/2026-03-12-18_47_36.585.html.gz --params decompress=true --binary --output foo
