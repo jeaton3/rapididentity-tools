@@ -1,3 +1,4 @@
+import pprint
 """Fetch and print an arbitrary /admin/connect endpoint.
 
 Usage:
@@ -99,37 +100,20 @@ def main() -> None:
     cfg = Config(str(config_path))
     with RapidIdentityClient.from_config(cfg) as client:
         try:
-            if args.binary:
-                path = _connect_path(args.endpoint)
-                url = client._build_url(path)
-                headers = client.auth_config.get_headers()
-                headers["Accept"] = args.accept or "text/json; text/xml; application/octet-stream; */*"
-
-                response = client.session.request(
-                    method="GET",
-                    url=url,
-                    params=query_params or None,
-                    headers=headers,
-                    verify=client.verify_ssl,
-                    timeout=client.timeout,
-                )
-
-                if response.status_code >= 400:
-                    client._handle_response(response)
-
+            headers = {"Accept": args.accept} if args.accept else None
+            path = _connect_path(args.endpoint)
+            result = client.get(path, params=query_params or None, headers=headers, raw=args.binary)
+            if args.binary:            
                 if args.output:
                     output_path = Path(args.output).expanduser()
                     output_path.parent.mkdir(parents=True, exist_ok=True)
-                    output_path.write_bytes(response.content)
-                    print(f"Wrote {len(response.content)} bytes to {output_path}", file=sys.stderr)
+                    output_path.write_bytes(result.content)
+                    print(f"Wrote {len(result.content)} bytes to {output_path}", file=sys.stderr)
                 else:
-                    sys.stdout.buffer.write(response.content)
+                    sys.stdout.buffer.write(result.content)
                     sys.stdout.buffer.flush()
                 return
 
-            headers = {"Accept": args.accept} if args.accept else None
-            path = _connect_path(args.endpoint)
-            result = client.get(path, params=query_params or None, headers=headers)
             if isinstance(result, str) and result.lstrip().startswith("<"):
                 try:
                     tree = ET.ElementTree(ET.fromstring(result))
