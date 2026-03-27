@@ -226,6 +226,7 @@ class RapidIdentityClient:
         data: Optional[Dict[str, Any]] = None,
         raw_data: Optional[Union[str, bytes]] = None,
         params: Optional[Dict[str, Any]] = None,
+        raw: Optional[bool] = False,
         **kwargs,
     ) -> Dict[str, Any]:
         """
@@ -291,6 +292,8 @@ class RapidIdentityClient:
             except Exception:
                 logger.debug("HTTP response body: <could not decode>")
 
+            if raw:
+                return response
             return self._handle_response(response)
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Connection error: {e}")
