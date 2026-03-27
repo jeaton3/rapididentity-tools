@@ -38,14 +38,6 @@ class RapidIdentityConnect:
         trimmed = endpoint.strip("/")
         return f"/admin/connect/{trimmed}" if trimmed else "/admin/connect"
 
-    def get(
-        self,
-        endpoint: str,
-        headers: Optional[Dict[str, str]] = None,
-        **params: Any,
-    ) -> Any:
-        """(Removed) Use `client.get()` with a `/admin/connect/...` path instead."""
-
     def post_action(
         self,
         action_xml: str,
