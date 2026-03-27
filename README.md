@@ -1,12 +1,16 @@
 # RapidIdentity Python Library
 
-A Python library and utilities for interacting with RapidIdentity REST APIs.  This is nearly all AI-generated code via Github Copilot in VSCode.  It seems to work well enough for my needs, but no promises that it will work in all situations.
+A Python library and utilities for interacting with RapidIdentity REST APIs.  This is nearly all AI-generated code via Github Copilot in VSCode.  It seems to work well enough for my needs, but no promises that it will work in all situations.  The example scripts all only perform read actions, so they should be safe.  You can, of course, call things that execute code or delete things from Rapid Identity by calling the functions yourself using the library directly.
 
 ## Notes
  - I have only used API key authentication.  To generate an API key, go to Configuration / Security / Service Identities.  Create a new identity, and click on it and choose "Keys".  Add a key and assign it the appropriate role(s).  Note that you cannot modify roles after the key is created.  You will need to create a new key to add or remove roles.
- - For the ActionSet archiver/decoder, I granted "Connect Auditor" which has the ability to fetch the ActionSets.
- - examples/get_actions.py will same each actionset XML to an individual file.  These output files are identical to an export from the web UI, apart from whitespace formatting and the XML preamble.  The tranlated js files attempt to mirror what you see in the Action Sets editor.  "Disabled" likes are prefixed with ## since there's no ASCII strikethrough.   The arguments section is expanded and indluded in the file (prefixed with // ), so the line numbers in the exported js file will be off from the online editor by that much.
+ - For the ActionSet archiver/decoder, I granted the "Connect Auditor" role which has the ability to fetch the ActionSets.
+ - examples/get_actions.py will same each actionset XML to an individual file.  These output files are identical to an export from the web UI, apart from whitespace formatting and the XML preamble.  The tranlated js files attempt to mirror what you see in the Action Sets editor.  "Disabled" likes are prefixed with ## since there's no ASCII strikethrough. The arguments section is expanded and indluded in the file (prefixed with // ), so the line numbers in the exported js file will be off from the online editor by that much.
 
+- examples/connect_file_utils.py lets you view and manipulate files and logs in the connect module.  Even though Logs shows up distinct from Files in the web UI, they are the same to the api. It takes arguments to do a few differnt things:
+- -  "ls" to list directories/files
+- - "cat" to fetch a file and write it to standard output (automatically un-gzipping if to a terminal and not redirected to a file)
+- - rsync to syncronize files from a rapididentity instance to a local repica, with the ability to sync only 
 ## Features
 
 - **Multiple Authentication Methods**: Support for API Key, Basic Auth, and OAuth2
@@ -21,7 +25,7 @@ A Python library and utilities for interacting with RapidIdentity REST APIs.  Th
 
 ```bash
 # Clone the repository
-git clone https://github.com/jeaton3/rapididentity-tools.git
+git clone https://github.com/yourusername/rapididentity-tools.git
 cd rapididentity-tools
 
 # Install in development mode
@@ -361,4 +365,3 @@ For issues, questions, or feature requests, please open an issue on GitHub or co
 - Utility modules for validation, parsing, and pagination
 - Comprehensive error handling
 - Full test coverage
-python examples/get_connect_endpoint.py --config test --endpoint /admin/connect/fileContent/log/run/apiruntest/2026-03-12/2026-03-12-18_47_36.585.html.gz --params decompress=true --binary --output foo
