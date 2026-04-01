@@ -58,7 +58,7 @@ def _existing_actiondef_modified_ms(xml_path: str) -> Optional[int]:
     return None
 
 
-def split_action_defs(xml_text: str, out_dir: str) -> None:
+def split_action_defs(xml_text: str, out_dir: str):
     xml_dir = os.path.join(out_dir, "xml")
     vendor_xml_dir = os.path.join(out_dir, "vendor-xml")
     actions_dir = os.path.join(out_dir, "js")
@@ -132,10 +132,6 @@ def split_action_defs(xml_text: str, out_dir: str) -> None:
             else:
                 logging.info(f"Skipping XML and script export for {name} with modifiedMS={modified_ms} (existing file has modifiedMS={existing_modified_ms})")
                 skipped_xml_count += 1
-                script_text = actiondef_element_to_script(ad)
-                with open(js_path, "w", encoding="utf-8") as js_file:
-                    js_file.write(script_text)
-                js_count += 1
         else:
             # only overwrite vendor_xml_path if the modifiedMS attribute is newer than the existing file (if any), to avoid unnecessary churn on content-free actionDefs
             modified_ms = _parse_modified_ms(ad.get("modifiedMS") or ad.get("modifiedMs"))
@@ -148,11 +144,18 @@ def split_action_defs(xml_text: str, out_dir: str) -> None:
                 logging.info(f"Skipping vendor XML for {name} with modifiedMS={modified_ms} (existing file has modifiedMS={existing_modified_ms})")
                 skipped_vendor_xml_count += 1
 
-    print(f"Wrote {xml_count} actionDef XML files to {xml_dir}/")
-    print(f"Wrote {js_count} actionDef script files to {actions_dir}/")
-    print(f"Skipped {skipped_xml_count} actionDefs for XML and script export due to unchanged modifiedMS")
-    print(f"Wrote {vendor_xml_count} content-free actionDef XML files to {vendor_xml_dir}/")
-    print(f"Skipped {skipped_vendor_xml_count} content-free actionDefs for script export")
+    logging.info(f"Wrote {xml_count} actionDef XML files to {xml_dir}/")
+    logging.info(f"Wrote {js_count} actionDef script files to {actions_dir}/")
+    logging.info(f"Skipped {skipped_xml_count} actionDefs for XML and script export due to unchanged modifiedMS")
+    logging.info(f"Wrote {vendor_xml_count} content-free actionDef XML files to {vendor_xml_dir}/")
+    logging.info(f"Skipped {skipped_vendor_xml_count} content-free actionDefs for script export")
+
+    if (js_count > 0):
+        # we made relevant updates, return true
+        return True
+
+    # no relevant updates
+    return False
 
 def get_actionsets(config_path: str = "prod-config.json", out_dir: Optional[str] = None) -> None:
     cfg = Config(config_path)
@@ -161,7 +164,7 @@ def get_actionsets(config_path: str = "prod-config.json", out_dir: Optional[str]
     with RapidIdentityClient.from_config(cfg) as client:
         try:
             xml_text = client.connect.get_actions()
-            split_action_defs(xml_text, target_dir)
+            return split_action_defs(xml_text, target_dir)
         except AuthenticationError:
             print("Access forbidden: credentials lack permission to read actions")
         except NotFoundError:
@@ -195,4 +198,8 @@ def parse_args() -> argparse.Namespace:
 if __name__ == "__main__":
     args = parse_args()
     config_path = resolve_config_path(args.config)
-    get_actionsets(config_path, args.output_dir)
+    ret = get_actionsets(config_path, args.output_dir)
+    if (ret):
+        exit(0)
+    else:
+        exit(1)
