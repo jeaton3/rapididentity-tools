@@ -4,8 +4,12 @@ Usage:
     python examples/get_actions.py --config prod [--output-dir /path/to/output]
 
 XML actionDefs are saved as <output_dir>/xml/<name>.xml and script copies as
-<output_dir>/actions/<name>.js. If output_dir is omitted, it defaults to
+<output_dir>/js/<name>.js. If output_dir is omitted, it defaults to
 ``~/rapididentity/{tier}`` where ``tier`` is read from config.
+
+When an actionDef has a ``project`` attribute, XML and JS outputs are written
+to project-scoped subdirectories, for example:
+``<output_dir>/xml/<project>/<name>.xml`` and ``<output_dir>/js/<project>/<name>.js``.
 """
 import argparse
 import sys, os
@@ -81,9 +85,20 @@ def split_action_defs(xml_text: str, out_dir: str):
     for ad in root.findall(f"{{{NS_URI}}}actionDef"):
         name = ad.get("name", "unnamed")
         safe = FNAME_SAFE.sub("_", name) or "unnamed"
-        xml_path = os.path.join(xml_dir, f"{safe}.xml")
-        vendor_xml_path = os.path.join(vendor_xml_dir, f"{safe}.xml")
-        js_path = os.path.join(actions_dir, f"{safe}.js")
+        project = (ad.get("project") or "").strip()
+        safe_project = FNAME_SAFE.sub("_", project) if project else ""
+
+        xml_parent_dir = os.path.join(xml_dir, safe_project) if safe_project else xml_dir
+        vendor_xml_parent_dir = os.path.join(vendor_xml_dir, safe_project) if safe_project else vendor_xml_dir
+        js_parent_dir = os.path.join(actions_dir, safe_project) if safe_project else actions_dir
+
+        xml_path = os.path.join(xml_parent_dir, f"{safe}.xml")
+        vendor_xml_path = os.path.join(vendor_xml_parent_dir, f"{safe}.xml")
+        js_path = os.path.join(js_parent_dir, f"{safe}.js")
+
+        os.makedirs(xml_parent_dir, exist_ok=True)
+        os.makedirs(vendor_xml_parent_dir, exist_ok=True)
+        os.makedirs(js_parent_dir, exist_ok=True)
 
         # Create a namespace-stripped copy of the element so output does not
         # include any xmlns declaration or namespace prefixes, and remove

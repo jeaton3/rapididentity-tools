@@ -1,7 +1,7 @@
 #!/bin/bash -x
 # Connect file sync wrapper: errorlog.csv every 5min, recent-logs hourly, everything daily
-# Usage: ./sync_logs.sh [destination_dir] [config_name]
-# Example: ./sync_logs.sh ~/logs prod
+# Usage: ./sync_files.sh [destination_dir] [config_name]
+# Example: ./sync_files.sh ~/logs prod
 
 set -e
 
@@ -28,6 +28,12 @@ FULL_SYNC_INTERVAL=$((24 * 60 * 60))  # 1 day
 should_run() {
     local state_file=$1
     local interval=$2
+
+    if [[ -f "$state_file.FORCE" ]]; then
+	echo "FORCE run, removing $state_file.FORCE"
+	rm $state_file.FORCE
+        return 0  # File doesn't exist, should run
+    fi
     
     if [[ ! -f "$state_file" ]]; then
         return 0  # File doesn't exist, should run
@@ -87,8 +93,8 @@ fi
 # 3. Full sync everything daily
 if should_run "$FULL_SYNC_STATE" "$FULL_SYNC_INTERVAL"; then
     log "$CONFIG Syncing / (full) ..."
-    if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync \
-        --exclude '2025|2026-0[12]' / "$DEST_DIR"; then
+    if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync --verbose \
+        / "$DEST_DIR"; then
         mark_run "$FULL_SYNC_STATE"
         log "✓ $CONFIG Full sync complete"
     else

@@ -335,9 +335,11 @@ def rsync(
         exclude_patterns = [exclude]
     else:
         exclude_patterns = [p for p in exclude if p]
+    #print(f"exclude_patterns is {exclude_patterns}")
 
     excl_res = [re.compile(pattern) for pattern in exclude_patterns]
-    cutoff_time = time.time() - 172800 if recent_logs else None
+    # 2 day cutoff for "recent", 30 day for "full"
+    cutoff_time = time.time() - 172800 if recent_logs else time.time() - 2592000
     list_http_calls = 0
     content_http_calls = 0
 
@@ -357,7 +359,11 @@ def rsync(
         timestamp = entry.get("timestamp")
         if not isinstance(timestamp, (int, float)):
             return False
-        return (timestamp / 1000.0) < cutoff_time
+
+        if (timestamp / 1000.0) < cutoff_time:
+            return True
+        else:
+            return False
 
 
     def _sync_dir(server_path: str, local_dir: Path):
@@ -394,9 +400,8 @@ def rsync(
             # Directory detection: presence of `fileEntries` indicates a directory
             is_dir = "fileEntries" in e
 
-            if _should_skip_recent_log_entry(e, child_server_path):
-                if verbose:
-                    print(f"  {child_server_path}")
+            if not is_dir and _should_skip_recent_log_entry(e, child_server_path):
+                print(f"Skipping {child_server_path}")
                 continue
 
             # Some API payloads include the current directory as an entry; skip
