@@ -21,7 +21,7 @@ from typing import Optional
 # ensure the project package is importable
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
 from rapididentity import Config, RapidIdentityClient
 from rapididentity.exceptions import AuthenticationError, APIError, NotFoundError
@@ -145,7 +145,7 @@ def split_action_defs(xml_text: str, out_dir: str):
                     js_file.write(script_text)
                 js_count += 1
             else:
-                logging.info(f"Skipping XML and script export for {name} with modifiedMS={modified_ms} (existing file has modifiedMS={existing_modified_ms})")
+                logging.debug(f"Skipping XML and script export for {name} with modifiedMS={modified_ms} (existing file has modifiedMS={existing_modified_ms})")
                 skipped_xml_count += 1
         else:
             # only overwrite vendor_xml_path if the modifiedMS attribute is newer than the existing file (if any), to avoid unnecessary churn on content-free actionDefs
@@ -156,7 +156,7 @@ def split_action_defs(xml_text: str, out_dir: str):
                 tree2.write(vendor_xml_path, encoding="unicode", xml_declaration=True)
                 vendor_xml_count += 1
             else:
-                logging.info(f"Skipping vendor XML for {name} with modifiedMS={modified_ms} (existing file has modifiedMS={existing_modified_ms})")
+                logging.debug(f"Skipping vendor XML for {name} with modifiedMS={modified_ms} (existing file has modifiedMS={existing_modified_ms})")
                 skipped_vendor_xml_count += 1
 
     logging.info(f"Wrote {xml_count} actionDef XML files to {xml_dir}/")
@@ -173,6 +173,7 @@ def split_action_defs(xml_text: str, out_dir: str):
     return False
 
 def get_actionsets(config_path: str = "prod-config.json", out_dir: Optional[str] = None) -> None:
+    logging.debug(f"Fetching action sets from config: {config_path} out_dir: {out_dir}")
     cfg = Config(config_path)
     tier = str(cfg.get_tier())
     target_dir = out_dir or os.path.join(os.path.expanduser("~"), "rapididentity", tier)
