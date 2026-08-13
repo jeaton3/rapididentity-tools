@@ -338,8 +338,8 @@ def rsync(
     #print(f"exclude_patterns is {exclude_patterns}")
 
     excl_res = [re.compile(pattern) for pattern in exclude_patterns]
-    # 2 day cutoff for "recent", 30 day for "full"
-    cutoff_time = time.time() - 172800 if recent_logs else time.time() - 2592000
+    # 2 day cutoff for "recent", 7 day for "full"
+    cutoff_time = time.time() - (24*60*60*2) if recent_logs else time.time() - (24*60*60*7)
     list_http_calls = 0
     content_http_calls = 0
 
@@ -401,7 +401,8 @@ def rsync(
             is_dir = "fileEntries" in e
 
             if not is_dir and _should_skip_recent_log_entry(e, child_server_path):
-                print(f"Skipping {child_server_path}")
+                if verbose:
+                    print(f"Skipping {child_server_path}")
                 continue
 
             # Some API payloads include the current directory as an entry; skip
@@ -437,10 +438,10 @@ def rsync(
             if is_dir:
                 if not local_target.exists():
                     if dry_run:
-                        if verbose:
-                             print(f"Would create directory {local_target}")
+                        print(f"Would create directory {local_target}")
                     else:
-                        print(f"+ {local_target}")
+                        if verbose:
+                            print(f"+ {local_target}")
                         local_target.mkdir(parents=True, exist_ok=True)
                 else:
                     if verbose:
@@ -464,7 +465,8 @@ def rsync(
                         pass
 
                 if _is_excluded(child_server_path, local_target.name):
-                    print(f"Excluding {child_server_path}")
+                    if verbose:
+                        print(f"Excluding {child_server_path}")
                     continue
 
                 if not local_target.exists():

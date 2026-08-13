@@ -93,7 +93,7 @@ fi
 # 3. Full sync everything daily
 if should_run "$FULL_SYNC_STATE" "$FULL_SYNC_INTERVAL"; then
     log "$CONFIG Syncing / (full) ..."
-    if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync --verbose \
+    if "$PYTHON" "$SCRIPT_DIR/connect_file_utils.py" --config "$CONFIG" rsync \
         / "$DEST_DIR"; then
         mark_run "$FULL_SYNC_STATE"
         log "✓ $CONFIG Full sync complete"
