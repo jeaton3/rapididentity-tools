@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import html
+import re
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 NS_URI = "urn:idauto.net:dss:actiondef"
 
@@ -91,6 +92,18 @@ def _render_actions(actions: List[ET.Element], indent: int = 0, parent_disabled:
 
             label_prefix = f"{label}: " if label else ""
             action_lines.append(f"{pad}{label_prefix}forEach {variable}, {collection} {{")
+            action_lines.extend(_render_actions(children, indent + 1, parent_disabled or disabled))
+            action_lines.append(f"{pad}}}")
+
+        elif name == "while":
+            print(f"Processing while action: {ET.tostring(action, encoding='unicode')}")
+            args = _get_args(action)
+            label = args.get("label", "").strip()
+            condition = args.get("condition", "")
+            children = _child_actions(_get_arg_elem(action, "do"))
+
+            label_prefix = f"{label}: " if label else ""
+            action_lines.append(f"{pad}{label_prefix}while ({condition}) {{")
             action_lines.extend(_render_actions(children, indent + 1, parent_disabled or disabled))
             action_lines.append(f"{pad}}}")
 
