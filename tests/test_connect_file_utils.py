@@ -92,3 +92,33 @@ def test_rsync_recent_logs_allows_recent_nested_log_entries(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "log/jobs/2026-03-23/run.gz" in out
     assert "Skipping old" not in out
+
+
+def test_rsync_all_projects_mirrors_each_project_into_its_own_subdir(tmp_path, capsys):
+    class FakeConnect:
+        def __init__(self):
+            self.client = SimpleNamespace()
+
+        def get_files(self, path=None, project=None):
+            if path in ("/", None):
+                return [{"path": "notes.txt", "timestamp": None}]
+            return []
+
+        def get_projects(self):
+            return [{"name": "default"}, {"name": "sub-a"}, {"name": "sub-b"}]
+
+    rsync(
+        FakeConnect(),
+        src="/",
+        dest=str(tmp_path),
+        project="default",
+        dry_run=True,
+        verbose=True,
+        all_projects=True,
+    )
+
+    out = capsys.readouterr().out
+    assert "== project: sub-a ==" in out
+    assert "== project: sub-b ==" in out
+    # The project we already synced as the default shouldn't be repeated.
+    assert "== project: default ==" not in out

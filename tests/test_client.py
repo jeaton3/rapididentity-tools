@@ -220,6 +220,27 @@ class TestRapidIdentityClient:
             params={"project": "my-project", "metaDataOnly": "true"},
         )
 
+    def test_connect_get_projects_returns_project_list(self):
+        """Ensure connect.get_projects lists projects from /admin/connect/projects."""
+        from rapididentity.config import Config
+
+        cfg = Config()
+        cfg.config = {
+            "host": "https://api.example.com",
+            "auth_type": "api_key",
+            "api_key": "foobar",
+            "verify_ssl": True,
+            "timeout": 10,
+        }
+
+        client = RapidIdentityClient.from_config(cfg)
+        projects = [{"name": "default"}, {"name": "sub-a"}]
+        with patch.object(client, "get", return_value={"projects": projects}) as mock_get:
+            result = client.connect.get_projects()
+
+        assert result == projects
+        mock_get.assert_called_once_with("/admin/connect/projects")
+
     def test_connect_post_action_posts_xml(self):
         """Ensure connect.post_action sends XML payload to /admin/connect/actions."""
         from rapididentity.config import Config
