@@ -28,6 +28,22 @@ This folder contains runnable examples for workflows that are implemented in the
   - Writes XML files to `~/rapididentity/{tier}/xml`
   - Writes script files for non-empty actionDefs to `~/rapididentity/{tier}/actions`
 
+- `get_jobs.py`
+  - Run: `python examples/get_jobs.py --config prod [--project my-project] [--output-dir DIR]`
+  - Loads config from `~/rapididentity/config/prod.json` (when `--config prod`)
+  - Fetches Connect jobs (raw `<jobs>` XML) via `RapidIdentityClient.from_config(cfg).connect.get_jobs()`
+  - Writes the raw pretty-printed XML to `~/rapididentity/{tier}/jobs/jobs.xml`
+  - Parses the XML (booleans/ints coerced, quoted arg literals unquoted) and writes one readable JSON file per job to `~/rapididentity/{tier}/jobs/json/{name}.json`, so diffs between runs stay scoped to the jobs that changed
+  - Prints a one-line-per-job summary (name, schedule, enabled/disabled, action) to stdout
+
+- `get_rest_points.py`
+  - Run: `python examples/get_rest_points.py --config prod [--project my-project] [--output-dir DIR]`
+  - Loads config from `~/rapididentity/config/prod.json` (when `--config prod`)
+  - Fetches RESTPoints (nested in `/admin/connect/projects` XML) via `RapidIdentityClient.from_config(cfg).connect.get_rest_points()`
+  - Writes the raw pretty-printed projects XML to `~/rapididentity/{tier}/restpoints/projects.xml`
+  - Writes one readable JSON file per RESTPoint (named `{project}_{method}_{path}.json`) to `~/rapididentity/{tier}/restpoints/json/`, so diffs between runs stay scoped to what changed
+  - Prints a one-line-per-RESTPoint summary (project, method, path, action set) to stdout
+
 - `put_action.py`
   - Run: `python examples/put_action.py --config prod ~/rapididentity/test/xml/SalesforceToMeta.xml`
   - Loads config from `~/rapididentity/config/prod.json` (when `--config prod`)

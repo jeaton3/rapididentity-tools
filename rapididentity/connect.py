@@ -2,7 +2,8 @@
 Main RapidIdentity Connect API
 """
 
-from typing import Dict, Any, Optional, TYPE_CHECKING
+from typing import Dict, Any, List, Optional, TYPE_CHECKING
+import xml.etree.ElementTree as ET
 from rapididentity.utils.helpers import normalize_payload
 
 if TYPE_CHECKING:
@@ -156,6 +157,91 @@ class RapidIdentityConnect:
         headers = {"Accept": "application/json"}
         payload = self.client.get(endpoint, params=params, headers=headers)
         return normalize_payload(payload, list_key="files")
+
+    def get_jobs(self, project: Optional[str] = None) -> Any:
+        """
+        Get Connect jobs, optionally filtered by project.
+
+        Calls `/admin/connect/jobs` (optionally with a `project` query
+        param) and returns the normalized list of jobs.
+        """
+        params: Dict[str, Any] = {}
+        if project:
+            params["project"] = project
+
+        payload = self.client.get("/admin/connect/jobs", params=params)
+        return normalize_payload(payload, list_key="jobs")
+
+    def get_rest_points(self, project: Optional[str] = None) -> Any:
+        """
+        Get configured Connect RESTPoints.
+
+        RESTPoints aren't exposed via a dedicated endpoint. They're
+        nested inside each project's `<restPointProject>/<restPoints>`
+        block in the `<projects>` XML returned by
+        `/admin/connect/projects`, e.g.:
+
+            <projects>
+              <project name="...">
+                <restPointProject disabled="false">
+                  <restPoints>
+                    <restPoint id="..." path="..." actionSet="...">
+                      <argMap>...</argMap>
+                    </restPoint>
+                  </restPoints>
+                </restPointProject>
+              </project>
+            </projects>
+
+        This parses that XML and flattens the RESTPoints across all
+        projects (or just `project`, if given), tagging each entry with
+        its owning `project` name.
+        """
+        payload = self.get_projects()
+
+        if not isinstance(payload, str):
+            # Already-parsed payload (e.g. a JSON-shaped tenant response);
+            # nothing to parse.
+            return payload if isinstance(payload, list) else []
+
+        root = ET.fromstring(payload)
+        ns = root.tag.split("}", 1)[0][1:] if root.tag.startswith("{") else ""
+
+        def tag(name: str) -> str:
+            return f"{{{ns}}}{name}" if ns else name
+
+        rest_points: List[Dict[str, Any]] = []
+        for project_elem in root.findall(tag("project")):
+            name = project_elem.get("name")
+            if project and name != project:
+                continue
+
+            rest_point_project = project_elem.find(tag("restPointProject"))
+            if rest_point_project is None:
+                continue
+
+            rest_points_elem = rest_point_project.find(tag("restPoints"))
+            if rest_points_elem is None:
+                continue
+
+            for rp in rest_points_elem.findall(tag("restPoint")):
+                entry: Dict[str, Any] = dict(rp.attrib)
+                entry["project"] = name
+
+                arg_map_elem = rp.find(tag("argMap"))
+                if arg_map_elem is not None:
+                    entry["argMap"] = [
+                        dict(item.attrib)
+                        for item in arg_map_elem.findall(tag("argMapItem"))
+                    ]
+
+                auth_spec_elem = rp.find(tag("authSpec"))
+                if auth_spec_elem is not None:
+                    entry["authSpec"] = dict(auth_spec_elem.attrib)
+
+                rest_points.append(entry)
+
+        return rest_points
 
     def get_projects(self) -> Any:
         """

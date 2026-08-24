@@ -241,6 +241,161 @@ class TestRapidIdentityClient:
         assert result == projects
         mock_get.assert_called_once_with("/admin/connect/projects")
 
+    def test_connect_get_jobs_returns_job_list(self):
+        """Ensure connect.get_jobs lists jobs from /admin/connect/jobs."""
+        from rapididentity.config import Config
+
+        cfg = Config()
+        cfg.config = {
+            "host": "https://api.example.com",
+            "auth_type": "api_key",
+            "api_key": "foobar",
+            "verify_ssl": True,
+            "timeout": 10,
+        }
+
+        client = RapidIdentityClient.from_config(cfg)
+        jobs = [{"name": "job-a"}, {"name": "job-b"}]
+        with patch.object(client, "get", return_value={"jobs": jobs}) as mock_get:
+            result = client.connect.get_jobs()
+
+        assert result == jobs
+        mock_get.assert_called_once_with("/admin/connect/jobs", params={})
+
+    def test_connect_get_jobs_passes_project_filter(self):
+        """Ensure get_jobs maps project to a GET query param."""
+        from rapididentity.config import Config
+
+        cfg = Config()
+        cfg.config = {
+            "host": "https://api.example.com",
+            "auth_type": "api_key",
+            "api_key": "foobar",
+            "verify_ssl": True,
+            "timeout": 10,
+        }
+
+        client = RapidIdentityClient.from_config(cfg)
+        with patch.object(client, "get", return_value={"jobs": []}) as mock_get:
+            client.connect.get_jobs(project="my-project")
+
+        mock_get.assert_called_once_with(
+            "/admin/connect/jobs", params={"project": "my-project"}
+        )
+
+    # `/admin/connect/projects` returns RESTPoints nested inside each
+    # project's <restPointProject>/<restPoints> XML block, wrapped in a
+    # JSON `data` field -- mirrors the shape actions/jobs endpoints use.
+    PROJECTS_XML = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<projects xmlns="urn:idauto.net:dss:actiondef">'
+        '<project name="default" id="p1" description="" adminGroupDN="" '
+        'operatorGroupDN="" auditorGroupDN="" changeCount="1" modifiedMs="1" '
+        'modifiedBy="" modifiedByName="">'
+        '<restPointProject disabled="false">'
+        '<authSpec anonymous="true" oauth1="false" basic="false" basicWithOAuthKeys="false"/>'
+        '<restPoints>'
+        '<restPoint id="rp-1" description="lookup a user" method="GET" '
+        'disabled="false" path="/userlookup" produces="application/json" '
+        'actionSet="REST_userLookup">'
+        '<argMap><argMapItem sourceType="QUERY_PARAM" sourceKey="username" '
+        'destType="STRING" destKey="username"/></argMap>'
+        '<authSpec anonymous="true" oauth1="false" basic="false" basicWithOAuthKeys="false"/>'
+        '</restPoint>'
+        '</restPoints>'
+        '</restPointProject>'
+        '</project>'
+        '<project name="sub-a" id="p2" description="" adminGroupDN="" '
+        'operatorGroupDN="" auditorGroupDN="" changeCount="1" modifiedMs="1" '
+        'modifiedBy="" modifiedByName="">'
+        '<restPointProject disabled="false">'
+        '<authSpec anonymous="true" oauth1="false" basic="false" basicWithOAuthKeys="false"/>'
+        '<restPoints>'
+        '<restPoint id="rp-2" description="renew" method="POST" disabled="false" '
+        'path="/renew" produces="text/html" actionSet="APISelfRenew">'
+        '</restPoint>'
+        '</restPoints>'
+        '</restPointProject>'
+        '</project>'
+        '</projects>'
+    )
+
+    def test_connect_get_rest_points_flattens_projects(self):
+        """Ensure get_rest_points parses the projects XML and flattens restPoints."""
+        from rapididentity.config import Config
+
+        cfg = Config()
+        cfg.config = {
+            "host": "https://api.example.com",
+            "auth_type": "api_key",
+            "api_key": "foobar",
+            "verify_ssl": True,
+            "timeout": 10,
+        }
+
+        client = RapidIdentityClient.from_config(cfg)
+        with patch.object(
+            client, "get", return_value={"data": self.PROJECTS_XML}
+        ) as mock_get:
+            result = client.connect.get_rest_points()
+
+        assert result == [
+            {
+                "id": "rp-1",
+                "description": "lookup a user",
+                "method": "GET",
+                "disabled": "false",
+                "path": "/userlookup",
+                "produces": "application/json",
+                "actionSet": "REST_userLookup",
+                "project": "default",
+                "argMap": [
+                    {
+                        "sourceType": "QUERY_PARAM",
+                        "sourceKey": "username",
+                        "destType": "STRING",
+                        "destKey": "username",
+                    }
+                ],
+                "authSpec": {
+                    "anonymous": "true",
+                    "oauth1": "false",
+                    "basic": "false",
+                    "basicWithOAuthKeys": "false",
+                },
+            },
+            {
+                "id": "rp-2",
+                "description": "renew",
+                "method": "POST",
+                "disabled": "false",
+                "path": "/renew",
+                "produces": "text/html",
+                "actionSet": "APISelfRenew",
+                "project": "sub-a",
+            },
+        ]
+        mock_get.assert_called_once_with("/admin/connect/projects")
+
+    def test_connect_get_rest_points_filters_by_project(self):
+        """Ensure get_rest_points can filter to a single project's RESTPoints."""
+        from rapididentity.config import Config
+
+        cfg = Config()
+        cfg.config = {
+            "host": "https://api.example.com",
+            "auth_type": "api_key",
+            "api_key": "foobar",
+            "verify_ssl": True,
+            "timeout": 10,
+        }
+
+        client = RapidIdentityClient.from_config(cfg)
+        with patch.object(client, "get", return_value={"data": self.PROJECTS_XML}):
+            result = client.connect.get_rest_points(project="sub-a")
+
+        assert [rp["id"] for rp in result] == ["rp-2"]
+
     def test_connect_post_action_posts_xml(self):
         """Ensure connect.post_action sends XML payload to /admin/connect/actions."""
         from rapididentity.config import Config
