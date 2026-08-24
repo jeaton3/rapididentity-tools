@@ -28,7 +28,7 @@ from rapididentity.utils.helpers import safe_filename, extract_xml_payload, writ
 from rapididentity.utils.actiondefs import iter_action_defs, has_actions_content, extract_versions
 
 NS_URI = "urn:idauto.net:dss:actiondef"
-FNAME_SAFE = re.compile(r"[^A-Za-z0-9_.-]")
+FNAME_SAFE = re.compile(r"^[A-Za-z0-9_.-]")
 VERSION_SAFE = re.compile(r"^[A-Za-z0-9_.-]+$")
 
 
@@ -47,9 +47,6 @@ def parse_args() -> argparse.Namespace:
         help="Config name under ~/rapididentity/config (e.g. --config prod)",
     )
     return parser.parse_args()
-
-
-
 
 
 def archive_action_history(config_path: Path) -> None:
@@ -81,12 +78,11 @@ def archive_action_history(config_path: Path) -> None:
         # actually have content and are worth archiving history for
         actions_xml = client.connect.get_actions(metaDataOnly=False)
 
-        for action_def in _iter_action_defs(actions_xml):
+        for action_def in iter_action_defs(actions_xml):
             actions_seen += 1
             action_id = action_def.get("id")
             action_name = action_def.get("name", "unnamed")
-            safe_name = _safe_name(action_name)
-
+            safe_name = safe_filename(action_name)
 
             if not action_id:
                 actions_without_id += 1
@@ -94,9 +90,9 @@ def archive_action_history(config_path: Path) -> None:
                 continue
 
             #print(f"Processing action: {action_name} (id: {action_id})")
-            if not _has_actions_content(action_def):
+            if not has_actions_content(action_def):
                 actions_without_content += 1
-                #print(f"Skipping action with no actions: {action_name}")
+                print(f"Skipping action with no content: {action_name}")
                 continue
             try:
                 history_payload = client.connect.get_actionset_history(action_id)
@@ -109,7 +105,7 @@ def archive_action_history(config_path: Path) -> None:
                 print(f"{action_name}: failed to fetch history ({e.status_code})")
                 continue
 
-            versions = _extract_versions(history_payload)
+            versions = extract_versions(history_payload)
 
             if not versions:
                 actions_without_versions += 1

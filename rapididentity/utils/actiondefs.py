@@ -96,7 +96,6 @@ def _render_actions(actions: List[ET.Element], indent: int = 0, parent_disabled:
             action_lines.append(f"{pad}}}")
 
         elif name == "while":
-            print(f"Processing while action: {ET.tostring(action, encoding='unicode')}")
             args = _get_args(action)
             label = args.get("label", "").strip()
             condition = args.get("condition", "")
