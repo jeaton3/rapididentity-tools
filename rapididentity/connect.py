@@ -157,6 +157,13 @@ class RapidIdentityConnect:
         payload = self.client.get(endpoint, params=params, headers=headers)
         return normalize_payload(payload, list_key="files")
 
+    def get_projects(self) -> Any:
+        """
+        Get available Connect projects.
+        """
+        payload = self.client.get("/admin/connect/projects")
+        return normalize_payload(payload, list_key="projects")
+
     def get_file_content(self, path: str, project: Optional[str] = None) -> Any:
         """
         Fetch the contents of a file using Connect `fileContent` endpoints.

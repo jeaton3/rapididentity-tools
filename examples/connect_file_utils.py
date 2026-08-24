@@ -297,6 +297,7 @@ def rsync(
     exclude: Optional[list[str]] = None,
     recent_logs: bool = False,
     http_count: bool = False,
+    all_projects: bool = False,
 ) -> None:
     """Mirror a Connect path to a local destination directory.
 
@@ -304,6 +305,11 @@ def rsync(
     - Creates directories locally when missing
     - Downloads files when missing or when remote timestamp is newer
     - Skips unchanged files
+    - When `all_projects` is set, also discovers every other Connect
+      project via `connect.get_projects()` and mirrors `src` from each of
+      them into a `<project>` subdirectory of `dest`, since Connect scopes
+      file listings to a single project per request (unlike actions, which
+      are returned for all projects in one call).
     """
     from pathlib import Path
     import os
@@ -366,7 +372,7 @@ def rsync(
             return False
 
 
-    def _sync_dir(server_path: str, local_dir: Path):
+    def _sync_dir(server_path: str, local_root: Path, project: Optional[str]):
         nonlocal list_http_calls
         list_http_calls += 1
         payload = connect.get_files(path=server_path, project=project)
@@ -427,7 +433,7 @@ def rsync(
                 # Root sync: entries are already relative to destination root.
                 rel = rel.lstrip("/")
 
-            local_target = dest_root.joinpath(rel)
+            local_target = local_root.joinpath(rel)
 
             # Exclude matching paths/names
             if _is_excluded(child_server_path, child_server_path.rstrip("/").split("/")[-1]):
@@ -446,8 +452,10 @@ def rsync(
                 else:
                     if verbose:
                         print(f"  {local_target}/")
-                # Recurse into directory
-                _sync_dir(child_server_path, local_target)
+                # Recurse into directory. `local_root` stays fixed for the
+                # whole walk since `rel` is always computed relative to the
+                # top-level `src`, not to `server_path`.
+                _sync_dir(child_server_path, local_root, project)
             else:
                 # File handling
                 server_ts = e.get("timestamp")
@@ -591,7 +599,25 @@ def rsync(
                             pass
 
     # Start syncing from src
-    _sync_dir(src, dest_root)
+    _sync_dir(src, dest_root, project)
+
+    if all_projects:
+        projects_payload = connect.get_projects()
+        other_project_names = sorted(
+            {
+                p.get("name")
+                for p in projects_payload
+                if isinstance(p, dict) and p.get("name") and p.get("name") != project
+            }
+        ) if isinstance(projects_payload, list) else []
+
+        for name in other_project_names:
+            if verbose:
+                print(f"== project: {name} ==")
+            project_dest = dest_root / name
+            if not dry_run:
+                project_dest.mkdir(parents=True, exist_ok=True)
+            _sync_dir(src, project_dest, name)
 
     if http_count:
         total_calls = list_http_calls + content_http_calls
@@ -641,6 +667,14 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print HTTP call totals for this rsync run (total/list/content)",
     )
+    p_rsync.add_argument(
+        "--all-projects",
+        action="store_true",
+        help=(
+            "Also mirror src from every other Connect project (discovered via "
+            "the projects endpoint) into a <project> subdirectory of dest"
+        ),
+    )
 
     return parser.parse_args()
 
@@ -685,6 +719,7 @@ def main() -> None:
                     http_count=getattr(args, "http_count", False),
                     verbose=getattr(args, "verbose", False),
                     exclude=getattr(args, "exclude", None),
+                    all_projects=getattr(args, "all_projects", False),
                 )
         except AuthenticationError:
             print("Access forbidden: credentials lack permission to read this endpoint", file=sys.stderr)
