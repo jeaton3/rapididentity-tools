@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import html
 import re
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, Iterable, List, Optional, Set
@@ -16,7 +15,7 @@ def _tag(name: str) -> str:
 
 def _get_args(action: ET.Element) -> Dict[Optional[str], str]:
     return {
-        arg.get("name"): html.unescape(arg.get("value", ""))
+        arg.get("name"): arg.get("value", "")
         for arg in action.findall(_tag("arg"))
         if arg.get("value") is not None
     }
@@ -43,7 +42,7 @@ def _positional_args(action: ET.Element, skip: Optional[Set[str]] = None) -> Lis
             continue
         value = arg.get("value")
         if value is not None:
-            parts.append(html.unescape(value))
+            parts.append(value)
     return parts
 
 
@@ -59,7 +58,7 @@ def _render_actions(actions: List[ET.Element], indent: int = 0, parent_disabled:
         action_lines: List[str] = []
 
         if name == "comment":
-            action_lines.append(f"{pad}# {html.unescape(_get_args(action).get('comment', ''))}")
+            action_lines.append(f"{pad}# {_get_args(action).get('comment', '')}")
 
         elif name == "section":
             args = _get_args(action)
